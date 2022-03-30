@@ -19,7 +19,7 @@
 -- transport-specific in format. Use newtypes for serialisation instead.
 --
 -----------------------------------------------------------------------------
-module OpenTelemetry.Trace.Id 
+module OpenTelemetry.Trace.Id
   ( -- * Working with 'TraceId's
     TraceId
     -- ** Creating 'TraceId's
@@ -111,9 +111,9 @@ toHexadecimal (SBS bin) = runST $ ST $ \s ->
       | isTrue# (i ==# n) = s
       | otherwise = do
           let !w = indexWord8Array# bin i
-          let !(# w1, w2 #) = convertByte w
-          case writeWord8Array# bout (i *# 2#) w1 s of
-            s1 -> case writeWord8Array# bout ((i *# 2#) +# 1#) w2 s1 of
+          let !(# w1, w2 #) = convertByte (word8ToWord# w)
+          case writeWord8Array# bout (i *# 2#) (wordToWord8# w1) s of
+            s1 -> case writeWord8Array# bout ((i *# 2#) +# 1#) (wordToWord8# w2) s1 of
               s2 -> loop (i +# 1#) bout s2
 
 -- | Convert a value Word# to two Word#s containing
@@ -122,7 +122,7 @@ convertByte :: Word# -> (# Word#, Word# #)
 convertByte b = (# r tableHi b, r tableLo b #)
   where
         r :: Addr# -> Word# -> Word#
-        r table ix = indexWord8OffAddr# table (word2Int# ix)
+        r table ix = word8ToWord# (indexWord8OffAddr# table (word2Int# ix))
 
         !tableLo =
             "0123456789abcdef0123456789abcdef\
@@ -162,12 +162,12 @@ fromHexadecimal src@(SBS sbs)
     loop dst di i s
       | isTrue# (i ==# newLen#) = (# s, Nothing #)
       | otherwise = do
-        let a = rHi (indexWord8Array# sbs i)
-        let b = rLo (indexWord8Array# sbs (i +# 1#))
-        if isTrue# (eqWord# a (int2Word# 0xff#)) || isTrue# (eqWord# b (int2Word# 0xff#))
+        let a = rHi (word8ToWord# (indexWord8Array# sbs i))
+        let b = rLo (word8ToWord# (indexWord8Array# sbs (i +# 1#)))
+        if isTrue# (eqWord# (word8ToWord# a) (int2Word# 0xff#)) || isTrue# (eqWord# (word8ToWord# b) (int2Word# 0xff#))
             then (# s, Just (I# i) #)
             else
-              case writeWord8Array# dst di (or# a b) s of
+              case writeWord8Array# dst di (wordToWord8# (or# (word8ToWord# a) (word8ToWord# b))) s of
                 s1 -> loop dst (di +# 1#) (i +# 2#) s1
 
     rLo ix = indexWord8OffAddr# tableLo (word2Int# ix)
