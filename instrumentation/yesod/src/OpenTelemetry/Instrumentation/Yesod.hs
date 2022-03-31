@@ -70,7 +70,7 @@ goTree front names (ResourceParent name _check pieces trees) =
     toIgnore = length $ filter isDynamic pieces
     isDynamic Dynamic {} = True
     isDynamic Static {} = False
-    front' = front . ConP (mkName name) . ignored
+    front' = front . ConP (mkName name) [] . ignored
     newNames = names <> [name]
 
 goRes :: (Pat -> Pat) -> [String] -> Resource a -> Q Clause
@@ -99,7 +99,7 @@ mkRouteToPattern appName ress = do
     toText s = VarE 'T.pack `AppE` LitE (StringL s)
     isDynamic Dynamic {} = True
     isDynamic Static {} = False
-    parentPieceWrapper (parentName, pieces) nestedPat = ConP (mkName parentName) $ mconcat
+    parentPieceWrapper (parentName, pieces) nestedPat = ConP (mkName parentName) [] $ mconcat
       [ replicate (length $ filter isDynamic pieces) WildP
       , [nestedPat]
       ]
